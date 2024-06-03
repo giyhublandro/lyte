@@ -8639,6 +8639,7 @@ Public Class BarRestaurantForm
         GlobalVariable.DocumentToGenerate = "FICHE D'INVENTAIRE JOURNALIERE BAR"
         RapportFacturesForm.Show()
         RapportFacturesForm.TopMost = True
+        RapportFacturesForm.GunaDateTimePickerDebut.MaxDate = GlobalVariable.DateDeTravail.AddDays(-1)
 
     End Sub
 
@@ -9027,6 +9028,7 @@ Public Class BarRestaurantForm
 
     End Sub
 
+
     Private Sub GunaButtonInventaire_Click(sender As Object, e As EventArgs) Handles GunaButtonInventaire.Click
 
         Me.Cursor = Cursors.WaitCursor
@@ -9124,6 +9126,7 @@ Public Class BarRestaurantForm
                     Dim DATE_DE_CONTROLE_DEBUT As DateTime
                     Dim DATE_DE_CONTROLE_FIN As DateTime
                     Dim natureInformation As Integer
+                    Dim DATE_CONTROL As Date = DateDebut
 
                     'MessageBox.Show(gesion_des_shifts_.Rows.Count)
 
@@ -9136,13 +9139,13 @@ Public Class BarRestaurantForm
                         If INDEX_SHIFT = 0 Then
                             'SHIFT DU JOUR
                             natureInformation = 4
-                            SF_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                            SF_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                             natureInformation = 2
-                            ENTREE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                            ENTREE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                             natureInformation = 3
-                            SORTIE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                            SORTIE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                             SI_MATIN = SF_MATIN - ENTREE_MATIN + SORTIE_MATIN
 
@@ -9153,13 +9156,13 @@ Public Class BarRestaurantForm
                         ElseIf INDEX_SHIFT = 1 Then
                             'SHIFT DU SOIR
                             natureInformation = 4
-                            SF_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                            SF_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                             natureInformation = 2
-                            ENTREE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                            ENTREE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                             natureInformation = 3
-                            SORTIE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                            SORTIE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                             SI_SOIR = SF_SOIR - ENTREE_SOIR + SORTIE_SOIR
 

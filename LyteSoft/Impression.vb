@@ -24920,4 +24920,95 @@ Public Class Impression
 
     End Sub
 
+
+
+    Public Shared Sub ficheSuivieDeStockExportExcelForm(ByVal dt As DataGridView, ByVal title As String)
+
+        If dt.Rows.Count > 0 Then
+
+            Dim sfd As FolderBrowserDialog = New FolderBrowserDialog
+
+            If sfd.ShowDialog() = DialogResult.OK Then
+
+                Dim xlApp As Excel.Application
+                Dim xlWorkBook As Excel.Workbook
+                Dim xlWorkSheet As Excel.Worksheet
+                Dim misValue As Object = System.Reflection.Missing.Value
+                Dim i As Integer
+                Dim j As Integer
+
+                xlApp = New Excel.Application
+                xlWorkBook = xlApp.Workbooks.Add(Type.Missing)
+                xlWorkSheet = xlWorkBook.Sheets(1)
+
+                Dim k As Integer = 0
+
+                For Each column As DataGridViewColumn In dt.Columns
+                    xlWorkSheet.Cells(1, k + 1) = column.HeaderText
+                    k += 1
+                Next
+
+                Dim n As Integer = 2
+                Dim m As Integer = 1
+
+                '------------------------------------------------------------------------------------
+
+                'For j = 0 To dt.Rows.Count - 1
+
+                'For k = 0 To dt.Columns.Count - 1
+
+                'If dt.Rows(j).Cells(2).Value > 0 Then
+
+                'If k = 2 Or k = 4 Then
+
+                'Dim COTE_ARTICLE As String = dt.Rows(j).Cells(0).Value.ToString
+                'Dim QTE_CONVERTI As Double = Functions.affichageQteDansUnFormatCorrect(COTE_ARTICLE, dt.Rows(j).Cells(k).Value)
+
+                'pdfCell = New PdfPCell(New Paragraph(Format(QTE_CONVERTI, "#,##0.00"), font1))
+                'ElseIf k = 3 Then
+                'pdfCell = New PdfPCell(New Paragraph("", font1))
+                'Else
+                'pdfCell = New PdfPCell(New Paragraph(dt.Rows(j).Cells(k).Value.ToString, font1))
+                '    'End If
+
+                'End If
+
+                'Next
+
+                'Next
+
+                '------------------------------------------------------------------------------------
+
+                For i = 2 To dt.RowCount + 1
+
+                    For j = 1 To dt.ColumnCount - 1
+
+                        'dt.Rows(i - n).Cells(2).Value > 0 Then
+                        xlWorkSheet.Cells(i, j) = dt.Rows(i - n).Cells(j - m).Value
+                        'End If
+
+                    Next
+                Next
+
+                Dim fileName As String = "\" & title & ".xlsx"
+                Dim finalPath = sfd.SelectedPath + fileName
+
+                xlWorkSheet.Columns.AutoFit()
+
+                xlWorkSheet.SaveAs(finalPath)
+                xlWorkBook.Close()
+                xlApp.Quit()
+
+                releaseObject(xlApp)
+                releaseObject(xlWorkBook)
+                releaseObject(xlWorkSheet)
+
+                MessageBox.Show(title & " a été exporté au format Excel", "Exportation Excel", MessageBoxButtons.OK, MessageBoxIcon.Information)
+
+            End If
+
+        End If
+
+    End Sub
+
 End Class

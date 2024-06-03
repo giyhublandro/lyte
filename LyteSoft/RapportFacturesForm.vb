@@ -183,11 +183,11 @@ Public Class RapportFacturesForm
 
     End Sub
 
-    Private Sub GunaImageButton7_Click(sender As Object, e As EventArgs) Handles GunaImageButton7.Click
+    Private Sub GunaImageButton7_Click(sender As Object, e As EventArgs)
         Me.Close()
     End Sub
 
-    Private Sub GunaImageButton6_Click(sender As Object, e As EventArgs) Handles GunaImageButton6.Click
+    Private Sub GunaImageButton6_Click(sender As Object, e As EventArgs)
         Me.WindowState = FormWindowState.Minimized
     End Sub
 
@@ -195,6 +195,7 @@ Public Class RapportFacturesForm
 
         Dim DateDebut As Date = GunaDateTimePickerDebut.Value.ToShortDateString
         Dim DateFin As Date = GunaDateTimePickerFin.Value.ToShortDateString
+        Dim DATE_CONTROL As Date = CDate(DateDebut).ToShortDateString
 
         DataGridViewRapports.Columns.Clear()
 
@@ -1030,6 +1031,7 @@ Public Class RapportFacturesForm
 
         ElseIf GlobalVariable.DocumentToGenerate = "FICHE D'INVENTAIRE JOURNALIERE BAR" Then
 
+
             Dim CODE_MAGASIN As String = ""
 
             If GunaComboBoxMagasins.SelectedIndex >= 0 Then
@@ -1098,6 +1100,7 @@ Public Class RapportFacturesForm
 
             If ficheInventaireJournaliere.Rows.Count > 0 Then
 
+                GunaButton16.Visible = True
                 GunaButtonImprimer.Visible = True
 
                 DataGridViewRapports.Rows.Clear()
@@ -1139,13 +1142,13 @@ Public Class RapportFacturesForm
                             If INDEX_SHIFT = 0 Then
 
                                 natureInformation = 4
-                                SF_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                                SF_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                                 natureInformation = 2
-                                ENTREE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                                ENTREE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                                 natureInformation = 3
-                                SORTIE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                                SORTIE_MATIN = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                                 SI_MATIN = SF_MATIN - ENTREE_MATIN + SORTIE_MATIN
 
@@ -1156,13 +1159,13 @@ Public Class RapportFacturesForm
                             ElseIf INDEX_SHIFT = 1 Then
 
                                 natureInformation = 4
-                                SF_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                                SF_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                                 natureInformation = 2
-                                ENTREE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                                ENTREE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                                 natureInformation = 3
-                                SORTIE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation)
+                                SORTIE_SOIR = econom.inventaireJornalierDuBarRestaurant(CODE_MAGASIN, CODE_ARTICLE, DATE_DE_CONTROLE_DEBUT, DATE_DE_CONTROLE_FIN, natureInformation, DATE_CONTROL)
 
                                 SI_SOIR = SF_SOIR - ENTREE_SOIR + SORTIE_SOIR
 
@@ -1189,6 +1192,7 @@ Public Class RapportFacturesForm
                 End If
 
             Else
+                GunaButton16.Visible = False
                 GunaButtonImprimer.Visible = False
             End If
 
@@ -2437,4 +2441,15 @@ Public Class RapportFacturesForm
 
     End Function
 
+    Private Sub GunaButton16_Click(sender As Object, e As EventArgs) Handles GunaButton16.Click
+
+        Dim title As String = "FICHE INVENTAIRE JOURNALIERE BAR " & GunaDateTimePickerDebut.Value.ToString("ddMMyyHHmmss")
+
+        If GlobalVariable.actualLanguageValue = 0 Then
+            title = "DAILY INVENTORY FORM" & GunaDateTimePickerDebut.Value.ToString("ddMMyyHms")
+        End If
+
+        Impression.ficheSuivieDeStockExportExcelForm(DataGridViewRapports, title)
+
+    End Sub
 End Class

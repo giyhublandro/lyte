@@ -8068,6 +8068,21 @@ Public Class MainWindow
 
                                 End If
 
+                                If True Then
+                                    If GlobalVariable.actualLanguageValue = 1 Then
+                                        dialog = MessageBox.Show("Voulez-vous effectuer un encaissement", "Encaissement", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                                    Else
+                                        dialog = MessageBox.Show("Do you want to Cash In Money", "Cas In", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                                    End If
+
+                                    If Not dialog = DialogResult.No Then
+                                        MiniReglementForm.GunaTextBoxCodeResa.Text = CODE_RESERVATION
+                                        MiniReglementForm.GunaTextBoxChambre.Text = CHAMBRE_ID
+                                        MiniReglementForm.Show()
+                                        MiniReglementForm.TopMost = True
+                                    End If
+                                End If
+
                                 Me.Cursor = Cursors.Default
 
                             End If

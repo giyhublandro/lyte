@@ -1851,7 +1851,7 @@ Public Class Functions
     '--------------------------------------------------------------------
     'GET ELEMENT ON CONDITION BY DATE
 
-    Public Shared Function getElementByOnCodeAndDate(ByVal ETAT_MAIN_COURANTE As Integer, ByVal tableName As String, ByVal fieldName As String, ByVal conditionDate As Date, ByVal TYPE_RESA As String) As DataTable
+    Public Shared Function getElementByOnCodeAndDate(ByVal ETAT_MAIN_COURANTE As Integer, ByVal tableName As String, ByVal fieldName As String, ByVal conditionDate As Date, ByVal TYPE_RESA As String, Optional ByVal CODE_RESERVATION As String = "") As DataTable
 
         Dim table As New DataTable
 
@@ -1864,17 +1864,16 @@ Public Class Functions
         Dim getUserQuery As String = ""
 
         If TYPE_RESA = "main_courante_autres" Then
-
             getUserQuery = "Select * FROM " & tableName & " WHERE " & fieldName & " = @ETAT_MAIN_COURANTE And DATE_MAIN_COURANTE >= '" & DateDebut.ToString("yyyy-MM-dd") & "' AND DATE_MAIN_COURANTE <='" & DateFin.ToString("yyyy-MM-dd") & "' AND ETAT_MAIN_COURANTE=@ETAT_MAIN_COURANTE"
-
         Else
-
+            getUserQuery = "Select * FROM " & tableName & " WHERE " & fieldName & " = @ETAT_MAIN_COURANTE And DATE_MAIN_COURANTE >= '" & DateDebut.ToString("yyyy-MM-dd") & "' AND DATE_MAIN_COURANTE <='" & DateFin.ToString("yyyy-MM-dd") & "' AND ETAT_MAIN_COURANTE=@ETAT_MAIN_COURANTE AND NUM_RESERVATION=@CODE_RESERVATION"
         End If
 
         Dim Command As New MySqlCommand(getUserQuery, GlobalVariable.connect)
 
         'Command.Parameters.Add("@CODE", MySqlDbType.VarChar).Value = code
         Command.Parameters.Add("@ETAT_MAIN_COURANTE", MySqlDbType.Int64).Value = ETAT_MAIN_COURANTE
+        Command.Parameters.Add("@CODE_RESERVATION", MySqlDbType.VarChar).Value = CODE_RESERVATION
 
         adapter.SelectCommand = Command
         adapter.Fill(table)
@@ -5865,6 +5864,26 @@ Public Class Functions
 
     End Function
 
+    Public Shared Function infoChambres(ByVal CHAMBRE As String)
+
+        Dim query As String = ""
+
+        query = "SELECT LIBELLE_TYPE_CHAMBRE, type_chambre.PRIX, CODE_CHAMBRE
+        FROM chambre, type_chambre WHERE chambre.CODE_TYPE_CHAMBRE = type_chambre.CODE_TYPE_CHAMBRE AND chambre.CODE_CHAMBRE =@CHAMBRE"
+
+        'On Affiche toute reservation dont la date d'entree figure entre les deux dates saisies
+
+        Dim command As New MySqlCommand(query, GlobalVariable.connect)
+        command.Parameters.Add("@CHAMBRE", MySqlDbType.VarChar).Value = CHAMBRE
+
+        Dim adapter As New MySqlDataAdapter(command)
+        Dim table As New DataTable()
+        adapter.Fill(table)
+
+        Return table
+
+    End Function
+
     Public Shared Sub DocumentToPrintComptoire(ByVal ElementToDuplicate As String, ByVal Table As String, ByVal ColumnTitle As String, ByVal client As String, ByVal dtligneFacture As DataGridView, Optional ByVal reservationNum As String = "", Optional ByVal reference_garantie As String = "", Optional ByVal DEPOT_DE_GARANTIE As Double = 0)
 
         Dim societe As DataTable = Functions.allTableFields("societe")
@@ -5936,8 +5955,8 @@ Public Class Functions
 
         If reservationToPrint.Rows.Count > 0 Then
 
-            If Not Trim(GlobalVariable.ReservationToUpdate(0)("CODE_ENTREPRISE")) = "" Then
-                nomClient = GlobalVariable.ReservationToUpdate(0)("NOM_ENTREPRISE") & "(" & GlobalVariable.ReservationToUpdate(0)("NOM_CLIENT") & ")"
+            If Not Trim(reservationToPrint.Rows(0)("CODE_ENTREPRISE")) = "" Then
+                nomClient = reservationToPrint.Rows(0)("NOM_ENTREPRISE") & "(" & reservationToPrint.Rows(0)("NOM_CLIENT") & ")"
             ElseIf getElementByCode(client, "client", "CODE_CLIENT").Rows.Count > 0 Then
                 nomClient = getElementByCode(client, "client", "CODE_CLIENT").Rows(0)("NOM_PRENOM")
             End If
@@ -5960,18 +5979,46 @@ Public Class Functions
         sfd.FileName = titreFichier & nomClient & " " & (Date.Now().ToString("ddMMyyHHmmss"))
 
         If sfd.ShowDialog = 1 Then
-            'Dim pdfDoc As New Document(PageSize.A4, 40, 40, 80, 40)
-            Dim pdfDoc As New Document(PageSize.B7, 5, 5, 5, 5)
-            Dim pdfWrite As PdfWriter = PdfWriter.GetInstance(pdfDoc, New FileStream(sfd.FileName, FileMode.Create))
-            Dim pColumn As New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
-            Dim pColumn2 As New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 9, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
-            Dim pRow As New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
-            Dim fontTotal As New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
-            Dim font1 As New Font(iTextSharp.text.Font.FontFamily.COURIER, 8, iTextSharp.text.Font.NORMAL, BaseColor.BLACK)
-            Dim title As New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 13, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+
+            Dim pdfDoc As Document
+
+            Dim pdfWrite As PdfWriter
+
+            If GlobalVariable.AgenceActuelle.Rows(0)("PRINT_B7") = 1 Then
+                pdfDoc = New Document(PageSize.B7, 5, 5, 5, 5)
+                pdfWrite = PdfWriter.GetInstance(pdfDoc, New FileStream(sfd.FileName, FileMode.Create))
+            Else
+                pdfDoc = New Document(PageSize.A4, 40, 40, 80, 40)
+                pdfWrite = PdfWriter.GetInstance(pdfDoc, New FileStream(sfd.FileName, FileMode.Create))
+            End If
+
+            Dim pColumn As New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 12, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+            Dim pColumn2 As New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 13, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+            Dim pRow As New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 12, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+            Dim fontTotal As New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 12, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+            Dim font1 As New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 12, iTextSharp.text.Font.NORMAL, BaseColor.BLACK)
+            Dim title As New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 16, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
 
             Dim pdfTable As New PdfPTable(3) 'Number of columns
-            pdfTable.TotalWidth = 240.0F
+
+            If GlobalVariable.AgenceActuelle.Rows(0)("PRINT_B7") = 1 Then
+
+                pColumn = New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+                pColumn2 = New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 9, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+                pRow = New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+                fontTotal = New Font(iTextSharp.text.Font.FontFamily.HELVETICA, 8, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+                font1 = New Font(iTextSharp.text.Font.FontFamily.COURIER, 8, iTextSharp.text.Font.NORMAL, BaseColor.BLACK)
+                title = New Font(iTextSharp.text.Font.FontFamily.TIMES_ROMAN, 13, iTextSharp.text.Font.BOLD, BaseColor.BLACK)
+
+            End If
+
+
+            If GlobalVariable.AgenceActuelle.Rows(0)("PRINT_B7") = 1 Then
+                pdfTable.TotalWidth = 240.0F
+            Else
+                pdfTable.TotalWidth = 540.0F
+            End If
+
             pdfTable.LockedWidth = True
             pdfTable.HorizontalAlignment = Element.ALIGN_RIGHT
             pdfTable.HeaderRows = 1
@@ -5985,7 +6032,7 @@ Public Class Functions
             pdfDoc.Open()
 
             '------------------------------- LOGO SUR LE BON DE COMMANDE --------------------------------------
-            'klg
+
             Dim img() As Byte
             img = societe.Rows(0)("LOGO")
 
@@ -5993,36 +6040,86 @@ Public Class Functions
 
             Dim logo As Image
             logo = Image.GetInstance(img)
-            logo.ScalePercent(40.0F)
 
-            Dim pHeaderLogo As New PdfPTable(1)
-            pHeaderLogo.TotalWidth = pdfDoc.PageSize.Width
-            pHeaderLogo.DefaultCell.Border = 0
 
-            pdfCell = New PdfPCell(logo)
-            pdfCell.HorizontalAlignment = Element.ALIGN_CENTER
-            pdfCell.PaddingLeft = 5.0F
-            pdfCell.Border = 0 'used to remove borders on the cells
-            pHeaderLogo.AddCell(pdfCell)
-            pHeaderLogo.WriteSelectedRows(0, -1, 0, pdfDoc.GetTop(pdfDoc.TopMargin) + 125, pdfWrite.DirectContent)
+            'Dim pHeaderLogo As New PdfPTable(1)
+            Dim pHeaderLogo As PdfPTable
 
-            pdfDoc.Add(pHeaderLogo)
+            If GlobalVariable.AgenceActuelle.Rows(0)("PRINT_B7") = 1 Then
 
-            Dim pHeader As New PdfPTable(1)
-            pHeader.TotalWidth = pdfDoc.PageSize.Width
-            pHeader.DefaultCell.Border = 0
+                logo.ScalePercent(40.0F)
 
-            Dim p1 As Paragraph = New Paragraph(societe.Rows(0)("RAISON_SOCIALE"), title)
-            p1.Alignment = Element.ALIGN_CENTER
+                pHeaderLogo = New PdfPTable(1)
 
-            pdfDoc.Add(p1)
+                pHeaderLogo.TotalWidth = pdfDoc.PageSize.Width
+                pHeaderLogo.DefaultCell.Border = 0
 
-            Dim p001_ As Paragraph = New Paragraph("Num Reg. : " & societe.Rows(0)("NUM_REGISTRE") & " / Num Cont. : " & societe.Rows(0)("NUM_CONTRIBUABLE") & Chr(13) & societe.Rows(0)("TELEPHONE") & " - " & societe.Rows(0)("RUE") & Chr(13), pColumn2)
-            p001_.Alignment = Element.ALIGN_CENTER
+                pdfCell = New PdfPCell(logo)
+                pdfCell.HorizontalAlignment = Element.ALIGN_CENTER
+                pdfCell.PaddingLeft = 5.0F
+                pdfCell.Border = 0 'used to remove borders on the cells
+                pHeaderLogo.AddCell(pdfCell)
+                pHeaderLogo.WriteSelectedRows(0, -1, 0, pdfDoc.GetTop(pdfDoc.TopMargin) + 125, pdfWrite.DirectContent)
 
-            pdfDoc.Add(p001_)
+                pdfDoc.Add(pHeaderLogo)
 
-            Dim p3 As Paragraph = New Paragraph(Date.Now() & Chr(13), pColumn2)
+                Dim pHeader As New PdfPTable(1)
+                pHeader.TotalWidth = pdfDoc.PageSize.Width
+                pHeader.DefaultCell.Border = 0
+
+                Dim p1 As Paragraph = New Paragraph(societe.Rows(0)("RAISON_SOCIALE"), title)
+                p1.Alignment = Element.ALIGN_CENTER
+
+                pdfDoc.Add(p1)
+
+                Dim p001_ As Paragraph = New Paragraph("NUM REG. : " & societe.Rows(0)("NUM_REGISTRE") & " / NIU : " & societe.Rows(0)("NUM_CONTRIBUABLE") & Chr(13) & societe.Rows(0)("TELEPHONE") & " - " & societe.Rows(0)("RUE") & Chr(13), pColumn2)
+                p001_.Alignment = Element.ALIGN_CENTER
+
+                pdfDoc.Add(p001_)
+
+            Else
+
+                '-------------------------------------
+                logo.ScalePercent(50.0F)
+
+                pHeaderLogo = New PdfPTable(2)
+                Dim widths_ As Single() = New Single() {20.0F, 70.0F}
+
+                pHeaderLogo.SetWidths(widths_)
+                pHeaderLogo.TotalWidth = pdfDoc.PageSize.Width
+                pHeaderLogo.DefaultCell.Border = 0
+
+                pdfCell = New PdfPCell(logo)
+                pdfCell.HorizontalAlignment = Element.ALIGN_CENTER
+                pdfCell.PaddingLeft = 5.0F
+                pdfCell.Border = 0 'used to remove borders on the cells
+                pHeaderLogo.AddCell(pdfCell)
+
+                pdfCell = New PdfPCell(New Paragraph(societe.Rows(0)("RAISON_SOCIALE"), title))
+                pdfCell.HorizontalAlignment = Element.ALIGN_CENTER
+                pdfCell.PaddingLeft = 5.0F
+                pdfCell.Border = 0 'used to remove borders on the cells
+                pHeaderLogo.AddCell(pdfCell)
+
+                pdfCell = New PdfPCell(New Paragraph("", title))
+                pdfCell.HorizontalAlignment = Element.ALIGN_CENTER
+                pdfCell.PaddingLeft = 5.0F
+                pdfCell.Border = 0 'used to remove borders on the cells
+
+                pHeaderLogo.AddCell(pdfCell)
+
+                pdfCell = New PdfPCell(New Paragraph("NUM REG. : " & societe.Rows(0)("NUM_REGISTRE") & " / NIU : " & societe.Rows(0)("NUM_CONTRIBUABLE") & Chr(13) & " " & societe.Rows(0)("TELEPHONE") & " - " & societe.Rows(0)("RUE"), pColumn2))
+                pdfCell.HorizontalAlignment = Element.ALIGN_CENTER
+                pdfCell.PaddingLeft = 5.0F
+                pdfCell.Border = 0 'used to remove borders on the cells
+
+                pHeaderLogo.AddCell(pdfCell)
+
+                pHeaderLogo.WriteSelectedRows(0, -1, 0, pdfDoc.GetTop(pdfDoc.TopMargin) + 150, pdfWrite.DirectContent)
+
+            End If
+
+            Dim p3 As Paragraph = New Paragraph(Chr(13) & Date.Now() & Chr(13), pColumn2)
             p3.Alignment = Element.ALIGN_CENTER
 
             pdfDoc.Add(p3)
@@ -6031,6 +6128,16 @@ Public Class Functions
             Dim termes_ As String = ""
 
             Dim clientInformation As DataTable
+            Dim LIBELLE_TYPE_CHAMBRE As String = ""
+
+            Dim infoResa As DataTable = Functions.getElementByCode(reservationNum, "reserve_conf", "CODE_RESERVATION")
+            If Not infoResa.Rows.Count > 0 Then
+                infoResa = Functions.getElementByCode(reservationNum, "reservation", "CODE_RESERVATION")
+            End If
+
+            If infoResa.Rows.Count > 0 Then
+                LIBELLE_TYPE_CHAMBRE = infoChambres(infoResa.Rows(0)("CHAMBRE_ID")).Rows(0)("LIBELLE_TYPE_CHAMBRE")
+            End If
 
             If Not Trim(reference_garantie).Equals("") Then
 
@@ -6046,12 +6153,12 @@ Public Class Functions
                     If Not infoSupReservation.Rows.Count > 0 Then
                         infoSupReservation = Functions.getElementByCode(CODE_RESERVATION, "reservation", "CODE_RESERVATION")
                         If infoSupReservation.Rows.Count > 0 Then
-                            termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
+                            termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "TYPE DE CHAMBRE : " & LIBELLE_TYPE_CHAMBRE & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
                         Else
                             termes = "CLIENT : " & client & Chr(13) & Chr(13)
                         End If
                     Else
-                        termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
+                        termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "TYPE DE CHAMBRE : " & LIBELLE_TYPE_CHAMBRE & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
                     End If
                 End If
 
@@ -6070,12 +6177,12 @@ Public Class Functions
                     If GlobalVariable.actualLanguageValue = 1 Then
 
                         If infoSupReservation.Rows.Count > 0 Then
-                            termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
+                            termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "TYPE DE CHAMBRE : " & LIBELLE_TYPE_CHAMBRE & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
                         Else
                             infoSupReservation = Functions.getElementByCode(reservationNum, "reservation", "CODE_RESERVATION")
 
                             If infoSupReservation.Rows.Count > 0 Then
-                                termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
+                                termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "TYPE DE CHAMBRE : " & LIBELLE_TYPE_CHAMBRE & Chr(13) & "CHAMBRE : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
                             End If
 
                         End If
@@ -6083,12 +6190,12 @@ Public Class Functions
                     Else
 
                         If infoSupReservation.Rows.Count > 0 Then
-                            termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "ROOM : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
+                            termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "ROOM TYPE : " & LIBELLE_TYPE_CHAMBRE & Chr(13) & "ROOM : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
                         Else
                             infoSupReservation = Functions.getElementByCode(reservationNum, "reservation", "CODE_RESERVATION")
 
                             If infoSupReservation.Rows.Count > 0 Then
-                                termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "ROOM : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
+                                termes = Chr(13) & "CLIENT : " & infoSupReservation.Rows(0)("NOM_CLIENT") & Chr(13) & "ROOM TYPE : " & LIBELLE_TYPE_CHAMBRE & Chr(13) & "ROOM : " & infoSupReservation.Rows(0)("CHAMBRE_ID") & Chr(13) & Chr(13)
                             End If
 
                         End If
@@ -6197,9 +6304,17 @@ Public Class Functions
                         If GlobalVariable.actualLanguageValue = 1 Then
                             chiffreEnLettre = New Paragraph(Chr(13) & Chr(13) & "Reçu la somme de : " & NBLT(TotalFacture) & " " & GlobalVariable.societe.Rows(0)("CODE_MONNAIE"), pRow)
                         Else
-                            chiffreEnLettre = New Paragraph(Chr(13) & Chr(13) & "Received an amount of : " & NBLT(TotalFacture) & " " & GlobalVariable.societe.Rows(0)("CODE_MONNAIE"), pRow)
+                            chiffreEnLettre = New Paragraph(Chr(13) & Chr(13) & "Received an amount of xx : " & NBLT(TotalFacture) & " " & GlobalVariable.societe.Rows(0)("CODE_MONNAIE"), pRow)
                         End If
                         pdfDoc.Add(chiffreEnLettre)
+
+                        ' Then
+                        Dim signature As String = Chr(13) & "           CLIENT                                                             HOTEL "
+                        If GlobalVariable.actualLanguageValue = 0 Then
+                            signature = Chr(13) & "               CLEINT                                                                 HOTEL "
+                        End If
+                        pdfDoc.Add(New Paragraph(signature, pRow))
+
 
                     End If
 
@@ -6271,8 +6386,8 @@ Public Class Functions
                     End If
                     pdfDoc.Add(chiffreEnLettre)
 
-                    Dim signature As String = "                                                               Signature client"
-                    If GlobalVariable.actualLanguageValue = 1 Then
+                    Dim signature As String = "                                                          Signature client"
+                    If GlobalVariable.actualLanguageValue = 0 Then
                         signature = "                                                               Signature Client"
                     Else
                         signature = "                                                               Client's Signature"

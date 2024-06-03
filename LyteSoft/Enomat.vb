@@ -1244,7 +1244,13 @@ Public Class Economat
 
     End Function
 
-    Public Shared Function inventaireJornalierDuBarRestaurant(ByVal CODE_MAGASIN As String, ByVal CODE_ARTICLE As String, ByVal DATE_DE_CONTROLE_DEBUT As DateTime, ByVal DATE_DE_CONTROLE_SHIFT_FIN As DateTime, ByVal natureInformation As Integer)
+
+    Public Shared Function inventaireJornalierDuBarRestaurant(ByVal CODE_MAGASIN As String,
+                                                              ByVal CODE_ARTICLE As String,
+                                                              ByVal DATE_DE_CONTROLE_DEBUT As DateTime,
+                                                              ByVal DATE_DE_CONTROLE_SHIFT_FIN As DateTime,
+                                                              ByVal natureInformation As Integer,
+                                                              ByVal DATE_CONTROL As Date)
 
         'MessageBox.Show(DATE_DE_CONTROLE_DEBUT & " - " & DATE_DE_CONTROLE_DEBUT.ToLocalTime & " / " & DATE_DE_CONTROLE_SHIFT_FIN & " - " & DATE_DE_CONTROLE_SHIFT_FIN.ToLocalTime)
 
@@ -1261,6 +1267,8 @@ Public Class Economat
         Dim HEURE_MOVT As DateTime
         Dim quantite As Double = 0
 
+        Dim dateDebut As Date = CDate(DATE_DE_CONTROLE_DEBUT.ToLongTimeString).ToShortDateString()
+        Dim dateFin As Date = CDate(DATE_DE_CONTROLE_SHIFT_FIN.ToLongTimeString).ToShortDateString()
         'MessageBox.Show(HEURE_DEBUT_SHIFT & " / " & HEURE_MOVT & " / " & HEURE_FIN_SHIFT)
 
         'MessageBox.Show(HEURE_DEBUT_SHIFT & " - " & HEURE_FIN_SHIFT)
@@ -1268,23 +1276,14 @@ Public Class Economat
         'ON DOIT SE RASSURER QUE LA DATE DE MOUVEMENT EST TOUJOURS = A LA DATE DE CONTROLE
         'POUR LES CAS DE FACTURATION UNE FOIS LA JOURNEE PASSEE PAR EXAMPLE
 
-        If Not (GlobalVariable.DateDeTravail.ToShortDateString = Date.Now().ToShortDateString) Then
-
-            'DATE_DE_CONTROLE_DEBUT = CDate(DATE_DE_CONTROLE_DEBUT).AddDays(-1)
-            'DATE_DE_CONTROLE_SHIFT_FIN = CDate(DATE_DE_CONTROLE_SHIFT_FIN).AddDays(-1)
-
-        End If
-
+        '1- ON SELECTIONNE TOUS LES MOUVEMENTS DES ARTICLES D'UNE DATE
         If natureInformation = 2 Or natureInformation = 3 Then
-
-            If HEURE_DEBUT_SHIFT = HEURE_FIN_SHIFT Then
-                FillingListquery = "SELECT * FROM mouvement_stock WHERE CODE_ARTICLE = @CODE_ARTICLE AND CODE_MAGASIN = @CODE_MAGASIN AND DATE_MOUVEMENT >= '" & DATE_DE_CONTROLE_DEBUT.ToString("yyyy-MM-dd") & "'"
-            Else
-                FillingListquery = "SELECT * FROM mouvement_stock WHERE CODE_ARTICLE = @CODE_ARTICLE AND CODE_MAGASIN = @CODE_MAGASIN AND DATE_MOUVEMENT >= '" & DATE_DE_CONTROLE_DEBUT.ToString("yyyy-MM-dd") & "' AND DATE_MOUVEMENT <='" & DATE_DE_CONTROLE_SHIFT_FIN.ToString("yyyy-MM-dd") & "'"
-            End If
-
+            FillingListquery = "SELECT * FROM mouvement_stock WHERE CODE_ARTICLE = @CODE_ARTICLE AND CODE_MAGASIN = @CODE_MAGASIN 
+            AND DATE_MOUVEMENT >= '" & DATE_CONTROL.ToString("yyyy-MM-dd") & "' 
+            AND DATE_MOUVEMENT <='" & DATE_CONTROL.ToString("yyyy-MM-dd") & "'"
         ElseIf natureInformation = 4 Then
-            FillingListquery = "SELECT * FROM mouvement_stock WHERE CODE_ARTICLE = @CODE_ARTICLE AND CODE_MAGASIN = @CODE_MAGASIN"
+            FillingListquery = "SELECT * FROM mouvement_stock WHERE CODE_ARTICLE = @CODE_ARTICLE AND CODE_MAGASIN = @CODE_MAGASIN 
+            AND DATE_MOUVEMENT <='" & DATE_CONTROL.ToString("yyyy-MM-dd") & "'"
         End If
 
         Dim commandList As New MySqlCommand(FillingListquery, GlobalVariable.connect)
@@ -1295,10 +1294,14 @@ Public Class Economat
         Dim QuantiteArticle As New DataTable()
         adapterList.Fill(QuantiteArticle)
 
+        Dim k = 0
+
+        Dim days As Integer = CType((CDate(DATE_DE_CONTROLE_SHIFT_FIN) - CDate(DATE_DE_CONTROLE_DEBUT)).TotalDays, Int32)
+
         If QuantiteArticle.Rows.Count > 0 Then
 
             For i = 0 To QuantiteArticle.Rows.Count - 1
-
+                k = 0
                 HEURE_MOVT = QuantiteArticle.Rows(i)("DATE_DE_CONTROLE").ToLongTimeString
 
                 If natureInformation = 1 Or natureInformation = 4 Then
@@ -1307,10 +1310,6 @@ Public Class Economat
 
                 ElseIf natureInformation = 2 Then
 
-                    If QuantiteArticle.Rows(i)("CODE_ARTICLE") = "5453234" Then
-                        'MessageBox.Show(HEURE_DEBUT_SHIFT & " / " & HEURE_MOVT & " / " & HEURE_FIN_SHIFT)
-                    End If
-
                     If HEURE_DEBUT_SHIFT = HEURE_FIN_SHIFT Then
 
                         If HEURE_MOVT >= HEURE_DEBUT_SHIFT Then
@@ -1319,15 +1318,20 @@ Public Class Economat
 
                     Else
 
-                        If HEURE_MOVT >= HEURE_DEBUT_SHIFT And HEURE_MOVT <= HEURE_FIN_SHIFT Then
+                        If days = 0 Then
+
+                            If HEURE_MOVT >= HEURE_DEBUT_SHIFT And HEURE_MOVT <= HEURE_FIN_SHIFT Then
+                                quantite += QuantiteArticle.Rows(i)("QUANTITE_ENTREE")
+                            End If
+
+                        ElseIf days > 0 Then
                             quantite += QuantiteArticle.Rows(i)("QUANTITE_ENTREE")
                         End If
 
                     End If
 
-
                 ElseIf natureInformation = 3 Then
-
+                    'SORTIE
                     If HEURE_DEBUT_SHIFT = HEURE_FIN_SHIFT Then
 
                         If HEURE_MOVT >= HEURE_DEBUT_SHIFT Then
@@ -1336,7 +1340,13 @@ Public Class Economat
 
                     Else
 
-                        If HEURE_MOVT >= HEURE_DEBUT_SHIFT And HEURE_MOVT <= HEURE_FIN_SHIFT Then
+                        If days = 0 Then
+
+                            If HEURE_MOVT >= HEURE_DEBUT_SHIFT And HEURE_MOVT <= HEURE_FIN_SHIFT Then
+                                quantite += Math.Abs(QuantiteArticle.Rows(i)("QUANTITE_SORTIE"))
+                            End If
+
+                        ElseIf days > 0 Then
                             quantite += Math.Abs(QuantiteArticle.Rows(i)("QUANTITE_SORTIE"))
                         End If
 
