@@ -2467,6 +2467,12 @@ Public Class FolioForm
 
             If dialog = DialogResult.OK Then
 
+                If GlobalVariable.actualLanguageValue = 1 Then
+                    GlobalVariable.ComingFromFolio1FactureType = "INDIVIDUEL"
+                Else
+                    GlobalVariable.ComingFromFolio1FactureType = "INDIVIDUAL"
+                End If
+
                 ReglementForm.Close()
                 ReglementForm.Show()
                 ReglementForm.TopMost = True
@@ -2567,6 +2573,12 @@ Public Class FolioForm
 
             If dialog = DialogResult.OK Then
 
+                If GlobalVariable.actualLanguageValue = 1 Then
+                    GlobalVariable.ComingFromFolio1FactureType = "INDIVIDUEL"
+                Else
+                    GlobalVariable.ComingFromFolio1FactureType = "INDIVIDUAL"
+                End If
+
                 ReglementForm.Close()
                 ReglementForm.Show()
                 ReglementForm.TopMost = True
@@ -2624,6 +2636,12 @@ Public Class FolioForm
             End If
 
             If dialog = DialogResult.OK Then
+
+                If GlobalVariable.actualLanguageValue = 1 Then
+                    GlobalVariable.ComingFromFolio1FactureType = "INDIVIDUEL"
+                Else
+                    GlobalVariable.ComingFromFolio1FactureType = "INDIVIDUAL"
+                End If
 
                 ReglementForm.Close()
                 ReglementForm.Show()

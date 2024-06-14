@@ -1973,7 +1973,7 @@ Partial Class FolioForm
         Me.Controls.Add(Me.GunaDataGridViewFolio3)
         Me.Controls.Add(Me.GunaDataGridViewFolio2)
         Me.Controls.Add(Me.GunaDataGridViewFolio1)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D
+        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.Name = "FolioForm"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
